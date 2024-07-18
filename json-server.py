@@ -4,7 +4,7 @@ from nss_handler import HandleRequests, status
 
 
 # Add your imports below this line
-from views import list_docks, retrieve_dock, delete_dock, update_dock
+from views import list_docks, retrieve_dock, delete_dock, update_dock, create_dock
 from views import list_haulers, retrieve_hauler, delete_hauler, update_hauler, create_hauler
 from views import list_ships, retrieve_ship, delete_ship, update_ship, create_ship
 
@@ -131,6 +131,13 @@ class JSONServer(HandleRequests):
                 return self.response("", status.HTTP_201_SUCCESS_CREATED.value)
             
             return self.response("Could not create Hauler", status.HTTP_500_SERVER_ERROR.value)
+        
+        elif url["requested_resource"] == "docks":
+            successfully_created = create_dock(request_body)
+            if successfully_created:
+                return self.response("", status.HTTP_201_SUCCESS_CREATED.value)
+            
+            return self.response("Could not create Dock", status.HTTP_500_SERVER_ERROR.value)
         
         else:
             return self.response("Not found", status.HTTP_404_CLIENT_ERROR_RESOURCE_NOT_FOUND.value)
