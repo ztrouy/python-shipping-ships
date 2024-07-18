@@ -6,7 +6,7 @@ from nss_handler import HandleRequests, status
 # Add your imports below this line
 from views import list_docks, retrieve_dock, delete_dock, update_dock
 from views import list_haulers, retrieve_hauler, delete_hauler, update_hauler
-from views import list_ships, retrieve_ship, delete_ship, update_ship
+from views import list_ships, retrieve_ship, delete_ship, update_ship, create_ship
 
 
 class JSONServer(HandleRequests):
@@ -112,8 +112,18 @@ class JSONServer(HandleRequests):
 
     def do_POST(self):
         """Handle POST requests from a client"""
+        url = self.parse_url(self.path)
+        
+        content_len = int(self.headers.get('content-length', 0))
+        request_body = self.rfile.read(content_len)
+        request_body = json.loads(request_body)
 
-        pass
+        if url["requested_resource"] == "ships":
+            successfully_created = create_ship(request_body)
+            if successfully_created:
+                return self.response("", status.HTTP_201_SUCCESS_CREATED.value)
+            
+            return self.response("Could not create Ship", status.HTTP_500_SERVER_ERROR.value)
 
 
 
