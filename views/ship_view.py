@@ -41,12 +41,10 @@ def list_ships(url):
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
-        expand_list = url["query_params"].get("_expand", [])
+        query_params = url["query_params"].get("_expand", [])
 
         # Check if query is requesting expanded data
-        # if "hauler" in url["query_params"]["_expand"]:
-        if "hauler" in expand_list:
-            # Write the SQL query to get the information you want
+        if "hauler" in query_params:
             db_cursor.execute("""
             SELECT
                 s.id,
@@ -60,7 +58,6 @@ def list_ships(url):
                 ON h.id = s.hauler_id
             """)
         else:
-            # Write the SQL query to get the information you want
             db_cursor.execute("""
             SELECT
                 s.id,
@@ -79,7 +76,7 @@ def list_ships(url):
                 "name": row['name'],
                 "hauler_id": row["hauler_id"]
             }
-            if "hauler" in expand_list:
+            if "hauler" in query_params:
                 hauler = {
                     "id": row['haulerId'],
                     "name": row['haulerName'],
@@ -93,26 +90,62 @@ def list_ships(url):
 
     return serialized_ships
 
-def retrieve_ship(pk):
+def retrieve_ship(url):
     # Open a connection to the database
     with sqlite3.connect("./shipping.db") as conn:
         conn.row_factory = sqlite3.Row
         db_cursor = conn.cursor()
 
-        # Write the SQL query to get the information you want
-        db_cursor.execute("""
-        SELECT
-            s.id,
-            s.name,
-            s.hauler_id
-        FROM Ship s
-        WHERE s.id = ?
-        """, (pk,))
-        query_results = db_cursor.fetchone()
+        query_params = url["query_params"].get("_expand", [])
+        pk = url["pk"]
+
+        # Check if query is requesting expanded data
+        if "hauler" in query_params:
+            db_cursor.execute("""
+            SELECT
+                s.id,
+                s.name,
+                s.hauler_id,
+                h.id haulerId,
+                h.name haulerName,
+                h.dock_id
+            FROM Ship s
+            JOIN Hauler h
+                ON h.id = s.hauler_id
+            WHERE s.id = ?
+            """, (pk,))
+        else:
+            db_cursor.execute("""
+            SELECT
+                s.id,
+                s.name,
+                s.hauler_id
+            FROM Ship s
+            WHERE s.id = ?
+            """, (pk,))
+
+        result = db_cursor.fetchone()
 
         # Serialize Python list to JSON encoded string
-        dictionary_version_of_object = dict(query_results)
-        serialized_ship = json.dumps(dictionary_version_of_object)
+        ship = {}
+        
+        if result:
+            ship = {
+                "id": result['id'],
+                "name": result['name'],
+                "hauler_id": result["hauler_id"]
+            }
+            if "hauler" in query_params:
+                hauler = {
+                    "id": result['haulerId'],
+                    "name": result['haulerName'],
+                    "dock_id": result["dock_id"]
+                }
+                ship["hauler"] = hauler
+        else:
+            ship = None
+        
+        serialized_ship = json.dumps(ship)
 
     return serialized_ship
 
